@@ -1,4 +1,4 @@
-li a0, 0
+li t1,1
 
 boucle:
     # Affiche la valeur dans a0
@@ -16,7 +16,7 @@ boucle:
     addi t1, t1, 1
 
     # Vérifie si nous avons atteint 10
-    li t0, 11
+    li t0, 11 
     bne t1, t0, boucle
 
     # Terminaison du programme
