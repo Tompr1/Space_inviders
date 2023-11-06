@@ -27,7 +27,7 @@ boucle :
     li t4,111
     beq t3,t4,arret
     
-    j boucle 
+    j boucle   
 dim : 
     addi a1,a1,-1 
     j boucle
