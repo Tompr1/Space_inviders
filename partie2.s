@@ -11,7 +11,7 @@ boucle :
     li a0, 500  # 500 millisecondes (0.5 seconde)
     ecall
     
-    lw t2,0xffff0000 #t2 : valeur du RCR 
+    lw t2,0xffff0000 #t2 : valeur du RCR (0 ou 1)
     lw t3,0xffff0004 #t3 : valeur du RDR (entree clavier)
     
     beqz t2,boucle #Si pas d'entrée, affiche le même t0
@@ -27,7 +27,7 @@ boucle :
     li t4,111
     beq t3,t4,arret
     
-    
+    j boucle 
 dim : 
     addi a1,a1,-1 
     j boucle
