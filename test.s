@@ -184,9 +184,168 @@ jr ra
 
  ################################################################## QUESTON 7 #######################################################################################
  	
+ I_effacer : 
  
+ # prologue 
  
+addi sp, sp, -24	# allocation de 5 registres dans le tas + le registre ra
+sw ra, 0(sp)
+sw s0, 4(sp)
+sw s1, 8(sp)
+sw s2, 12(sp)
+sw s3, 16(sp)
+sw s4, 20(sp)
+
+# coeur de la fonction 
+
+li s0,0			#abscisse 
+li s1,0			#ordonnée
+li s2,0x00000000	#couleur noir
+boucle_effacer : 
+# Appel I_plot pour colorier le pixel avec la couleur noire
+    
+    mv a0, s0  		# Coordonnée abscisse
+    mv a1, s1  		# Coordonnée ordonnée
+    mv a2, s2  		# Couleur noire
+    jal I_plot
+    
+    # Incrémententation abscisse
+    addi s0, s0, 1
+    # Vérifier si on est au bout de la ligne
+    lw s3,I_largeur   # Largeur d'une Unit en pixels
+    bne s0, s3, boucle_effacer  # Si abscisse n'a pas atteint la largeur d'une Unit, continuer
+    # Réinitialisation pour si on a atteint le bout et ajout colonne
+    li s0, 0
+    addi s1, s1, 1
+    # Vérifier si toutes les lignes ont été effacées
+    lw s4, I_hauteur   # Hauteur d'une Unit en pixels
+    bne s1, s4, boucle_effacer  # Si ordonnée n'a pas atteint la hauteur d'une Unit, continuer
+    
+    
+ # epilogue 
+lw ra, 0(sp)
+lw s0, 4(sp)
+lw s1, 8(sp)
+lw s2, 12(sp)
+lw s3, 16(sp)
+lw s4, 20(sp)
+addi sp, sp, 24
+jr ra
+
+ ################################################################## QUESTON 8 #######################################################################################
+
+ I_rectangle : 
+
+#prologue
+addi sp, sp, -28	# allocation de 5 registres dans le tas + le registre ra
+sw ra, 0(sp)
+sw s0, 4(sp)
+sw s1, 8(sp)
+sw s2, 12(sp)
+sw s3, 16(sp)
+sw s4, 20(sp)
+sw s5, 24(sp)
+
+# coeur de la fonction 
+
+## Récupérer les paramètres a0 à a4
+mv s0, a0  # t0 : abscisse du coin supérieur gauche
+mv s1, a1  # t1 : ordonnée du coin supérieur gauche
+mv s2, a2  # t2 : largeur du rectangle
+mv s3, a3  # t3 : hauteur du rectangle
+mv s4, a4  # t4 : couleur du rectangle
+li s5, 0  # t5 : compteur pour les lignes
+    
+dessiner_ligne:
+    
+mv a0, s0  # Coordonnée abscisse
+mv a1, s1  # Coordonnée ordonnée
+mv a2, s4  # Couleur du rectangle
+jal I_plot
+    
+# Incrémenter l'ordonnée pour passer à la ligne suivante
+addi s0, s0, 1
+
+# Vérifier si toutes les lignes du rectangle ont été dessinées
+bge s0, s2, reinitialiser_abscisse  # Si la ligne a été dessinées, réinitialiser l'abscisse et passer à la ligne suivante
+j dessiner_ligne
+
+
+reinitialiser_abscisse:
+sub s0, s0, s2  # Réinitialiser l'abscisse
+addi s1, s1, 1  # Passer à la ligne suivante
+# Vérifier si toutes les lignes du rectangle ont été dessinées
+bge s1, s3, fin_dessin  # Si toutes les lignes ont été dessinées, terminer
+
+
+
+fin_dessin:
+lw ra, 0(sp)
+lw s0, 4(sp)
+lw s1, 8(sp)
+lw s2, 12(sp)
+lw s3, 16(sp)
+lw s4, 20(sp)
+lw s5, 28(sp)
+addi sp, sp, 28
+jr ra
  
+ ################################################################## QUESTON 9 #######################################################################################
+
+
+ I_rectangleAnim: #horizontal
+ 
+ # prologue
+ addi sp, sp, -28	# allocation de 5 registres dans le tas + le registre ra
+sw ra, 0(sp)
+sw s0, 4(sp)
+sw s1, 8(sp)
+sw s2, 12(sp)
+sw s3, 16(sp)
+sw s4, 20(sp)
+sw s5, 24(sp)
+
+# coeur de la fonction 
+
+	# initialisation des paramètres 
+li s0, 0         # t0 : abscisse initiale du rectangle
+li s1, 1        # t1 : hauteur du rectangle
+li s2, 0x00ff0000  # t2 : couleur du rectangle (rouge)
+lw s3,I_largeur   
+li s4,1
+li s5, 50        
+
+boucle_anim: 
+mv a0,s0
+mv a1, s1
+mv a2, s2
+jal I_plot
+
+li a7, 32
+mv a0, s5
+ecall
+
+jal I_effacer 
+add s0, s0, s4
+bge s0, s3, animation_ok  # Si le rectangle est sorti de l'écran, terminer l'animation
+
+j boucle_anim
+
+#epilogue 
+animation_ok:
+lw ra, 0(sp)
+lw s0, 4(sp)
+lw s1, 8(sp)
+lw s2, 12(sp)
+lw s3, 16(sp)
+lw s4, 20(sp)
+lw s5, 28(sp)
+addi sp, sp, 28
+jr ra
+
+
+
+
 
 
 # Point d'entrée du programme
@@ -197,10 +356,19 @@ main:
     
 
     # Appeler la fonction I_plot pour dessiner un pixel rouge à la position (10, 15)
-    li a0, 1   # Abscisse (x)
-    li a1, 1    # Ordonnée (y)
-    li a2, 0x00ff0000  # Couleur rouge
-    jal I_plot
+    #li a0, 1   # Abscisse (x)
+    #li a1, 1    # Ordonnée (y)
+    #li a2, 0x00ff0000  # Couleur rouge
+    #jal I_effacer
+    
+    #li a0,1
+    #li a1,1
+    #li a2,30
+    #li a3,30
+    #li a4, 0x00ff0000
+    #jal I_rectangle
+    
+    jal I_rectangleAnim
 
     # Fin du programme
     li a7, 10   # Appel système pour terminer le programme
