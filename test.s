@@ -19,6 +19,14 @@ I_dimtaille : .word 0
 
 I_buff : .word 0
 
+# définir le rectangle pour l'animation de gauche à droite : 
+rect_ABSDEB : .word 0
+rect_ABSFIN : .word 3
+rect_ORDDEB : .word 12
+rect_ORDFIN : .word 15
+
+saut_Anim : .word 0
+
 .text
 
 #####################################################################  QUESTION 2 ##############################################################################
@@ -254,7 +262,7 @@ mv s1, a1  # t1 : ordonnée du coin supérieur gauche
 mv s2, a2  # t2 : largeur du rectangle
 mv s3, a3  # t3 : hauteur du rectangle
 mv s4, a4  # t4 : couleur du rectangle
-li s5, 0  # t5 : compteur pour les lignes
+addi s5, s0, 0  # t5 : compteur pour les lignes
     
 dessiner_ligne:
     
@@ -263,7 +271,7 @@ mv a1, s1  # Coordonnée ordonnée
 mv a2, s4  # Couleur du rectangle
 jal I_plot
     
-# Incrémenter l'ordonnée pour passer à la ligne suivante
+# Incrémenter l'abscisse pour passer à la colonne suivante
 addi s0, s0, 1
 
 # Vérifier si toutes les lignes du rectangle ont été dessinées
@@ -272,10 +280,12 @@ j dessiner_ligne
 
 
 reinitialiser_abscisse:
-sub s0, s0, s2  # Réinitialiser l'abscisse
+sub s0, s0, s2  # Réinitialiser l'abscisse (premier unit)
+add s0, s0, s5 # retour unit de départ
 addi s1, s1, 1  # Passer à la ligne suivante
 # Vérifier si toutes les lignes du rectangle ont été dessinées
 bge s1, s3, fin_dessin  # Si toutes les lignes ont été dessinées, terminer
+j dessiner_ligne
 
 
 
@@ -303,35 +313,45 @@ sw s1, 8(sp)
 sw s2, 12(sp)
 sw s3, 16(sp)
 sw s4, 20(sp)
-sw s5, 24(sp)
+sw s6, 24(sp)
 
 # coeur de la fonction 
 
-	# initialisation des paramètres 
-li s0, 0         # t0 : abscisse initiale du rectangle
-li s1, 1        # t1 : hauteur du rectangle
-li s2, 0x00ff0000  # t2 : couleur du rectangle (rouge)
-lw s3,I_largeur   
-li s4,1
-li s5, 50        
+##recuperation des valeurs 
+mv s0, a0
+mv s1, a1
+mv s2, a2
+mv s3, a3
+mv s4, a4
+sw s2,saut_Anim,t1
+lw t0, saut_Anim
+lw s6, I_largeur       
 
+
+## boucle anim
 boucle_anim: 
-mv a0,s0
-mv a1, s1
-mv a2, s2
-jal I_plot
-
+### init des champs
+mv a0, s0 	#abs_g
+mv a1, s1	#abs_d
+mv a2, s2	#ord_haut
+mv a3, s3	#ord_bas
+mv a4, s4	#couleur
+jal I_rectangle
+### wait
 li a7, 32
-mv a0, s5
+li a0, 500 #wait 500ms
 ecall
 
 jal I_effacer 
-add s0, s0, s4
-bge s0, s3, animation_ok  # Si le rectangle est sorti de l'écran, terminer l'animation
+### calcul du prochain affichage
+add s0, s0,t0 	# abs_d + abs_d
+add s2,s2,t0	# abs_d + abs_d
+bgt s2, s6, animation_ok  # Si le rectangle est sorti de l'écran ou qu'il ne peut pas en dessiner , terminer l'animation
 
 j boucle_anim
 
 #epilogue 
+## libération mémoire
 animation_ok:
 lw ra, 0(sp)
 lw s0, 4(sp)
@@ -339,7 +359,7 @@ lw s1, 8(sp)
 lw s2, 12(sp)
 lw s3, 16(sp)
 lw s4, 20(sp)
-lw s5, 28(sp)
+lw s6, 24(sp)
 addi sp, sp, 28
 jr ra
 
@@ -361,13 +381,17 @@ main:
     #li a2, 0x00ff0000  # Couleur rouge
     #jal I_effacer
     
-    #li a0,1
-    #li a1,1
-    #li a2,30
-    #li a3,30
-    #li a4, 0x00ff0000
-    #jal I_rectangle
+    li a0,0	#abscisse haut gauche
+    li a1,12 	#ordonnée debut 
+    li a2,4	#abscisse haut droit
+    li a3,20	#ordonnée fin
+    li a4, 0x00ff0000	#couleur
     
+    
+
+    
+    
+    #jal I_rectangle
     jal I_rectangleAnim
 
     # Fin du programme
