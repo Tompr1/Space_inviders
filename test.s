@@ -18,6 +18,7 @@ I_dimtaille : .word 0
 # Définir la variable globale pour l'allocation
 
 I_buff : .word 0
+I_visu : .word 0
 
 # définir le rectangle pour l'animation de gauche à droite : 
 rect_ABSDEB : .word 0
@@ -36,8 +37,13 @@ j main
 ################################################################## QUESTON 3 #######################################################################################
 
 I_creer:
+##################
+## entree : variables globales, 
+## sortie : allocation de la mémoire image 
+###############
+
     # prologue
-    addi sp, sp, -20  # Allocation de 4 registres dans le tas
+    addi sp, sp, -20  # Allocation de 5 registres dans le tas
     sw ra, 0(sp)
     sw s0, 4(sp)
     sw s1, 8(sp)
@@ -125,6 +131,9 @@ jr ra
 # Fonction I_addr_to_xy
 I_addr_to_xy:
 
+#Entree : a0 adresse 
+#Sorties : a0 : abscisse a1 : ordonnée 
+
 # prologue 
   addi sp, sp, -16 	# allocation de 4 registres dans le tas
   sw s0, 0(sp)
@@ -165,6 +174,7 @@ jr ra
 
 I_plot :
 #Entrees : a0 abscisse, a1 ordonnee, a2 couleur
+#Sortie : a0 : adresse su pixel avec une couleur 
 
 # prologue
 addi sp, sp, -8 	# allocation de 4 registres dans le tas + le registre ra
@@ -193,6 +203,9 @@ jr ra
  ################################################################## QUESTON 7 #######################################################################################
  	
  I_effacer : 
+ 
+ #Entree : rien 
+ #sortie : a0 adresse de l'image avec des pixels noirs 
  
  # prologue 
  
@@ -243,9 +256,12 @@ jr ra
  ################################################################## QUESTON 8 #######################################################################################
 
  I_rectangle : 
+#Entrees : a0 : abscisse du coin gauche, a1: ordonnée du coin gauche, 
+#a2 : largeur du rectangle, a3 : hauteur du rectangle, a4 : couleur du rectangle
+#Sortie : --
 
 #prologue
-addi sp, sp, -28	# allocation de 5 registres dans le tas + le registre ra
+addi sp, sp, -36	# allocation de 5 registres dans le tas + le registre ra
 sw ra, 0(sp)
 sw s0, 4(sp)
 sw s1, 8(sp)
@@ -253,6 +269,8 @@ sw s2, 12(sp)
 sw s3, 16(sp)
 sw s4, 20(sp)
 sw s5, 24(sp)
+sw s6,28(sp)
+sw s7,32(sp)
 
 # coeur de la fonction 
 
@@ -262,7 +280,10 @@ mv s1, a1  # t1 : ordonnée du coin supérieur gauche
 mv s2, a2  # t2 : largeur du rectangle
 mv s3, a3  # t3 : hauteur du rectangle
 mv s4, a4  # t4 : couleur du rectangle
-addi s5, s0, 0  # t5 : compteur pour les lignes
+mv s5,s0	#s5 : sauvergarde abscisse
+add s6,s0,s2	#s6 : indice fin boucle colonne
+add s7,s1,s3	#s7 : indice fin boucle ligne
+
     
 dessiner_ligne:
     
@@ -275,16 +296,16 @@ jal I_plot
 addi s0, s0, 1
 
 # Vérifier si toutes les lignes du rectangle ont été dessinées
-bge s0, s2, reinitialiser_abscisse  # Si la ligne a été dessinées, réinitialiser l'abscisse et passer à la ligne suivante
+
+bge s0, s6, reinitialiser_abscisse  # Si la ligne a été dessinées, réinitialiser l'abscisse et passer à la ligne suivante
 j dessiner_ligne
 
 
 reinitialiser_abscisse:
-sub s0, s0, s2  # Réinitialiser l'abscisse (premier unit)
-add s0, s0, s5 # retour unit de départ
-addi s1, s1, 1  # Passer à la ligne suivante
+mv s0,s5
+addi s1,s1,1
 # Vérifier si toutes les lignes du rectangle ont été dessinées
-bge s1, s3, fin_dessin  # Si toutes les lignes ont été dessinées, terminer
+bge s1, s7, fin_dessin  # Si toutes les lignes ont été dessinées, terminer
 j dessiner_ligne
 
 
@@ -296,14 +317,22 @@ lw s1, 8(sp)
 lw s2, 12(sp)
 lw s3, 16(sp)
 lw s4, 20(sp)
-lw s5, 28(sp)
-addi sp, sp, 28
+lw s5, 24(sp)
+lw s6,28(sp)
+lw s7,32(sp)
+addi sp, sp, 36
 jr ra
  
  ################################################################## QUESTON 9 #######################################################################################
+ 
+
 
 
  I_rectangleAnim: #horizontal
+ 
+#Entrees : a0 : abscisse du coin gauche, a1: ordonnée du coin gauche, 
+#a2 : largeur du rectangle, a3 : hauteur du rectangle, a4 : couleur du rectangle
+#Sortie : --
  
  # prologue
  addi sp, sp, -28	# allocation de 5 registres dans le tas + le registre ra
@@ -315,6 +344,7 @@ sw s3, 16(sp)
 sw s4, 20(sp)
 sw s6, 24(sp)
 
+
 # coeur de la fonction 
 
 ##recuperation des valeurs 
@@ -323,9 +353,9 @@ mv s1, a1
 mv s2, a2
 mv s3, a3
 mv s4, a4
-sw s2,saut_Anim,t1
-lw t0, saut_Anim
-lw s6, I_largeur       
+li s6, 27
+sub s6,s6,s0
+  
 
 
 ## boucle anim
@@ -339,14 +369,13 @@ mv a4, s4	#couleur
 jal I_rectangle
 ### wait
 li a7, 32
-li a0, 500 #wait 500ms
+li a0, 50 #wait 500ms
 ecall
 
 jal I_effacer 
 ### calcul du prochain affichage
-add s0, s0,t0 	# abs_d + abs_d
-add s2,s2,t0	# abs_d + abs_d
-bgt s2, s6, animation_ok  # Si le rectangle est sorti de l'écran ou qu'il ne peut pas en dessiner , terminer l'animation
+addi s0, s0,1 	# abs_d + abs_d
+bgt s0, s6, animation_ok  # Si le rectangle est sorti de l'écran ou qu'il ne peut pas en dessiner , terminer l'animation
 
 j boucle_anim
 
@@ -363,16 +392,141 @@ lw s6, 24(sp)
 addi sp, sp, 28
 jr ra
 
+# l'animation n'est pas fluide du tout 
+
+
+ ################################################################## QUESTON 10 #######################################################################################
+
+I_buff_to_visu:
+ #Entrees : variables globales 
+#Sortie : variables globales
+    # prologue
+    addi sp, sp, -20  # allocation de 2 registres dans le tas
+    sw ra, 0(sp)
+    sw s0, 4(sp)
+    sw s1, 8(sp)
+    sw s2, 12(sp)
+    sw s3, 16(sp)
+
+    # Copier les données de I_buff dans I_visu
+    lw s0, I_buff
+    lw s1, I_visu
+    li s2, 0  # Initialiser l'indice de copie
+    lw s3, I_dimtaille
+
+    copie_data:
+        lw t0, 0(s0)  # Charger un mot depuis I_buff
+        sw t0, 0(s1)  # Stocker le mot dans I_visu
+        addi s0, s0, 4  # Avancer à l'adresse suivante dans I_buff
+        addi s1, s1, 4  # Avancer à l'adresse suivante dans I_visu
+        addi s2, s2, 1  # Incrémenter l'indice de copie
+
+        # Condition de sortie de la boucle
+        blt s2, s3, copie_data  # Copier 256 mots (taille de l'image)
+
+    # epilogue
+    lw ra, 0(sp)
+    lw s0, 4(sp)
+    lw s1, 8(sp)
+    lw s2, 12(sp)
+    lw s3, 16(sp)
+    addi sp, sp, 20  # libération de la mémoire allouée pour les registres
+    jr ra
+
+ ################################################################## QUESTON 11 #######################################################################################
+ 
+ I_animer_rectangle_double_buffer:
+  #Entrees : a0 : abscisse du coin gauche, a1: ordonnée du coin gauche, 
+#a2 : largeur du rectangle, a3 : hauteur du rectangle, a4 : couleur du rectangle
+#Sortie : --
+
+    # prologue
+    addi sp, sp, -36  # allocation de 3 registres dans le tas
+    sw ra, 0(sp)
+    sw s0, 4(sp)
+    sw s1, 8(sp)
+    sw s2, 12(sp)
+    sw s3, 16(sp)
+    sw s4, 20(sp)
+    sw s6, 24 (sp) 
+    sw s7, 28 (sp)  
+    sw s8,32(sp)
+    
+       
 
 
 
+    
+    ##recuperation des valeurs 
+    mv s0, a0
+    mv s1, a1
+    mv s2, a2
+    mv s3, a3
+    mv s4, a4
+    lw s6, I_buff
+    lw s7, I_visu
+    li s8,27
 
+    # Boucle d'animation
+    boucle_animation:
+        # Effacer le rectangle dans I_buff à sa position actuelle
+        jal I_effacer
 
+        # Dessiner le rectangle dans I_buff à sa nouvelle position
+        mv a0, s0  # Abscisse
+        mv a1, s1  # Ordonnée
+        mv a2, s2  # Largeur du rectangle
+        mv a3, s3  # Hauteur du rectangle
+        mv a4, s4  # Couleur du rectangle
+        jal I_rectangle
+
+        # Transférer les données de I_buff dans I_visu
+        mv a0, s6
+        mv a1, s7
+        jal I_buff_to_visu
+
+        # Mettre à jour les coordonnées pour le déplacement
+        addi s0, s0, 1
+
+        # Pause ou attente pour la simulation du temps (ajustez selon vos besoins)
+        li a7, 32  # Appel système pour sleep
+        li a0, 50  # Temps d'attente en microsecondes
+        ecall
+
+        # Condition de sortie de la boucle (rectangle arrivé à destination)
+        #bne s0, s2, boucle_animation
+        #bne s1, s3, boucle_animation
+         bgt s0, s8, anim_buff_ok
+         j boucle_animation
+
+    # epilogue
+anim_buff_ok: 
+    lw ra, 0(sp)
+    lw s0, 4(sp)
+    lw s1, 8(sp)
+    lw s2, 12(sp)
+    lw s3, 16(sp)
+    lw s4, 20(sp)
+    lw s6, 24 (sp) 
+    lw s7, 28 (sp)
+    lw s8,32(sp)  
+    
+    addi sp, sp, 36  # libération de la mémoire allouée pour les registres
+    jr ra
+    
+    
+#########################################################################################################################################################################################
+ 
+ 
 # Point d'entrée du programme
 main:
     
     jal I_creer
+    sw a0,I_visu,s0
+    jal I_creer
     sw a0,I_buff,s0
+    
+    
     
 
     # Appeler la fonction I_plot pour dessiner un pixel rouge à la position (10, 15)
@@ -383,8 +537,8 @@ main:
     
     li a0,0	#abscisse haut gauche
     li a1,12 	#ordonnée debut 
-    li a2,4	#abscisse haut droit
-    li a3,20	#ordonnée fin
+    li a2,5	#abscisse haut droit
+    li a3,5	#ordonnée fin
     li a4, 0x00ff0000	#couleur
     
     
@@ -392,7 +546,9 @@ main:
     
     
     #jal I_rectangle
-    jal I_rectangleAnim
+    #jal I_rectangleAnim
+    #jal I_buff_to_visu
+    jal I_animer_rectangle_double_buffer
 
     # Fin du programme
     li a7, 10   # Appel système pour terminer le programme
