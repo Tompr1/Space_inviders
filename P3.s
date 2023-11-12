@@ -10,7 +10,7 @@ unit_width_pixels:    .word 8    # Largeur des Units en pixels
 unit_height_pixels:   .word 8    # Hauteur des Units en pixels
 
 # Définir les variables globales pour la largeur et la hauteur de l'image en nombre de Units
-I_largeur:  .word 0 # largeur de l'image en Units
+I_largeur:  .word 0 # largeur de l'image een Units
 I_hauteur:  .word 0 # hauteur de l'image en Units
 I_dim: .word 0 	    # dimension de la fenetre
 I_dimtaille : .word 0
